@@ -86,6 +86,8 @@ body{background:#0f0f0f;color:#f0f0f0;font-family:'Apple SD Gothic Neo',-apple-s
 <div class="topbar">
   <div class="logo"><div class="dot"></div>유튜브 채널 모니터</div>
   <input type="password" class="api-input" id="apiKey" placeholder="YouTube API 키...">
+  <span id="savedBadge" style="display:none;font-size:11px;color:#4ade80">✓ 저장됨</span>
+  <button class="btn" onclick="clearKey()" title="저장된 키 삭제" style="font-size:11px;padding:5px 8px">🗑</button>
   <button class="btn red" onclick="startLoad()">불러오기</button>
   <span class="updated" id="updated"></span>
   <button class="btn" id="refreshBtn" style="display:none" onclick="startLoad()">↻ 새로고침</button>
@@ -360,6 +362,9 @@ async function loadChannel(ch){
 async function startLoad(){
   KEY=document.getElementById('apiKey').value.trim();
   if(!KEY){ alert('API 키를 입력해주세요'); return; }
+  // 키 localStorage에 저장
+  localStorage.setItem('yt_api_key', KEY);
+  document.getElementById('savedBadge').style.display = 'inline';
   videos=[];
   $('list').innerHTML='<div class="empty">불러오는 중...</div>';
   $('progWrap').style.display='block';
@@ -381,7 +386,17 @@ async function startLoad(){
   updateStats(); render();
 }
 
-document.getElementById('apiKey').value='AIzaSyAPus5CQ2DOdzgpm4g1RoPv_PbZl_F1IC4';
+// localStorage에서 저장된 키 불러오기
+const savedKey = localStorage.getItem('yt_api_key');
+if(savedKey){
+  document.getElementById('apiKey').value = savedKey;
+  document.getElementById('savedBadge').style.display = 'inline';
+}
+function clearKey(){
+  localStorage.removeItem('yt_api_key');
+  document.getElementById('apiKey').value='';
+  document.getElementById('savedBadge').style.display='none';
+}
 </script>
 </body>
 </html>
