@@ -457,7 +457,19 @@ function render(){
   $('list').appendChild(frag);
 }
 
-async function api(url){ const r=await fetch(url); return r.json(); }
+async function api(url, timeoutMs=15000){
+  const controller=new AbortController();
+  const t=setTimeout(()=>controller.abort(), timeoutMs);
+  try{
+    const r=await fetch(url, {signal: controller.signal});
+    return await r.json();
+  }catch(e){
+    console.warn('API 호출 실패/타임아웃:', url.slice(0,80), e.message);
+    return {};
+  }finally{
+    clearTimeout(t);
+  }
+}
 
 async function loadChannel(ch){
   const url=ch.id
@@ -472,11 +484,15 @@ async function loadChannel(ch){
   const pd=await api(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsId}&maxResults=5&key=${KEY}`);
   if(!pd.items?.length) return;
 
-  for(const item of pd.items){
-    const vid=item.snippet?.resourceId?.videoId;
-    if(!vid) continue;
-    const vd=await api(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${vid}&key=${KEY}`);
-    const v=vd.items?.[0];
+  // 영상 ID들을 모아서 한 번에 조회 (개별 순차 호출 대신 배치 호출로 속도 개선)
+  const vids=pd.items.map(item=>item.snippet?.resourceId?.videoId).filter(Boolean);
+  if(!vids.length) return;
+  const vd=await api(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${vids.join(',')}&key=${KEY}`);
+  const detailMap={};
+  (vd.items||[]).forEach(v=>{ detailMap[v.id]=v; });
+
+  for(const vid of vids){
+    const v=detailMap[vid];
     if(!v) continue;
     videos.push({
       vid, cat:ch.cat,
@@ -503,7 +519,7 @@ async function startLoad(){
   document.querySelector('.btn.red').disabled=true;
 
   let done=0;
-  const BATCH=3;
+  const BATCH=6;
   const CHANNELS=await getChannels();
   for(let i=0;i<CHANNELS.length;i+=BATCH){
     await Promise.all(CHANNELS.slice(i,i+BATCH).map(async ch=>{ try{ await loadChannel(ch); }catch(e){} done++; }));
@@ -551,14 +567,14 @@ function parseHandle(input){
   return {handle: '@'+input};
 }
 
-function addChannel(){
+async function addChannel(){
   const urlVal=document.getElementById('chUrlInput').value.trim();
   const cat=document.getElementById('chCatInput').value;
   if(!urlVal){ alert('채널 URL 또는 핸들을 입력해주세요'); return; }
   const parsed=parseHandle(urlVal);
   const custom=loadCustomChannels();
   // 중복 체크
-  const allCh=getChannels();
+  const allCh=await getChannels();
   const dup=allCh.find(c=>(parsed.handle&&c.handle===parsed.handle)||(parsed.id&&c.id===parsed.id));
   if(dup){ alert('이미 추가된 채널이에요'); return; }
   custom.push({...parsed, cat});
