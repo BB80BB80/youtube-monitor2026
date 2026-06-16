@@ -82,7 +82,9 @@ body{background:#0f0f0f;color:#f0f0f0;font-family:'Apple SD Gothic Neo',-apple-s
 .vcard.hot{border:1px solid rgba(255,140,0,0.3);background:#1a1500}
 .vcard.hot:hover{background:#1e1900}
 /* THUMB */
-.vthumb{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:5px;margin-bottom:6px;display:block;background:#2a2a2a}
+.vthumb{width:120px;aspect-ratio:16/9;object-fit:cover;border-radius:5px;display:block;background:#2a2a2a;flex-shrink:0}
+.vtitle-row{display:flex;gap:10px;align-items:flex-start;margin-bottom:5px}
+.vtitle-row .vtitle{margin-bottom:0;flex:1;min-width:0}
 /* EMPTY */
 .empty{padding:50px 20px;text-align:center;color:#444;font-size:13px}
 /* CHANNEL MANAGER */
@@ -405,13 +407,16 @@ function render(){
     const vmain=document.createElement('div');
     vmain.className='vmain';
 
-    // 영상 썸네일
+    // 썸네일 + 제목을 한 줄에 배치
+    const titleRow=document.createElement('div');
+    titleRow.className='vtitle-row';
+
     const thumbImg=document.createElement('img');
     thumbImg.className='vthumb';
     thumbImg.src=`https://i.ytimg.com/vi/${v.vid}/mqdefault.jpg`;
     thumbImg.alt='';
     thumbImg.onerror=()=>thumbImg.remove();
-    vmain.appendChild(thumbImg);
+    titleRow.appendChild(thumbImg);
 
     const titleDiv=document.createElement('div');
     titleDiv.className='vtitle';
@@ -423,7 +428,8 @@ function render(){
     titleDiv.appendChild(a);
     if(isToday(v.pub)){ const b=document.createElement('span'); b.className='new-badge'; b.textContent='NEW'; titleDiv.appendChild(b); }
     if(isHot){ const h=document.createElement('span'); h.className='hot-badge'; h.textContent='🔥급상승'; titleDiv.appendChild(h); }
-    vmain.appendChild(titleDiv);
+    titleRow.appendChild(titleDiv);
+    vmain.appendChild(titleRow);
 
     const meta=document.createElement('div');
     meta.className='vmeta';
