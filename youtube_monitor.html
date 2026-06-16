@@ -472,22 +472,29 @@ async function api(url, timeoutMs=15000){
 }
 
 async function loadChannel(ch){
+  const label = ch.handle||ch.id;
+  console.log('[START]', label);
   const url=ch.id
     ?`https://www.googleapis.com/youtube/v3/channels?part=contentDetails,statistics,snippet&id=${ch.id}&key=${KEY}`
     :`https://www.googleapis.com/youtube/v3/channels?part=contentDetails,statistics,snippet&forHandle=${encodeURIComponent(ch.handle)}&key=${KEY}`;
+  console.log('[1/4 channels.list 요청 시작]', label);
   const d=await api(url);
-  if(!d.items?.length) return;
+  console.log('[1/4 channels.list 완료]', label, d.items?.length);
+  if(!d.items?.length) { console.log('[종료: items 없음]', label); return; }
   const info=d.items[0];
   const uploadsId=info.contentDetails?.relatedPlaylists?.uploads;
-  if(!uploadsId) return;
+  if(!uploadsId) { console.log('[종료: uploadsId 없음]', label); return; }
 
+  console.log('[2/4 playlistItems 요청 시작]', label);
   const pd=await api(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsId}&maxResults=5&key=${KEY}`);
-  if(!pd.items?.length) return;
+  console.log('[2/4 playlistItems 완료]', label, pd.items?.length);
+  if(!pd.items?.length) { console.log('[종료: playlistItems 없음]', label); return; }
 
-  // 영상 ID들을 모아서 한 번에 조회 (개별 순차 호출 대신 배치 호출로 속도 개선)
   const vids=pd.items.map(item=>item.snippet?.resourceId?.videoId).filter(Boolean);
-  if(!vids.length) return;
+  if(!vids.length) { console.log('[종료: vids 없음]', label); return; }
+  console.log('[3/4 videos.list 요청 시작]', label, vids.length);
   const vd=await api(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${vids.join(',')}&key=${KEY}`);
+  console.log('[3/4 videos.list 완료]', label, vd.items?.length);
   const detailMap={};
   (vd.items||[]).forEach(v=>{ detailMap[v.id]=v; });
 
@@ -505,6 +512,7 @@ async function loadChannel(ch){
       likes:v.statistics?.likeCount||'0'
     });
   }
+  console.log('[4/4 완전 종료]', label);
 }
 
 async function startLoad(){
@@ -521,8 +529,11 @@ async function startLoad(){
   let done=0;
   const BATCH=6;
   const CHANNELS=await getChannels();
+  console.log('=== 전체 채널 수:', CHANNELS.length, '===');
   for(let i=0;i<CHANNELS.length;i+=BATCH){
-    await Promise.all(CHANNELS.slice(i,i+BATCH).map(async ch=>{ try{ await loadChannel(ch); }catch(e){} done++; }));
+    console.log(`--- 배치 시작: ${i}~${i+BATCH-1} ---`, CHANNELS.slice(i,i+BATCH).map(c=>c.handle||c.id));
+    await Promise.all(CHANNELS.slice(i,i+BATCH).map(async ch=>{ try{ await loadChannel(ch); }catch(e){ console.warn('[배치 내 에러]', ch.handle||ch.id, e); } done++; }));
+    console.log(`--- 배치 완료: ${i}~${i+BATCH-1} ---`);
     $('progFill').style.width=Math.round(done/CHANNELS.length*100)+'%';
     $('progLabel').textContent=`불러오는 중... ${done}/${CHANNELS.length}`;
     updateStats(); render();
