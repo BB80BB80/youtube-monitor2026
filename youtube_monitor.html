@@ -77,8 +77,33 @@ body{background:#0f0f0f;color:#f0f0f0;font-family:'Apple SD Gothic Neo',-apple-s
 .cat-시사{color:#fbbf24}.cat-엔터{color:#f472b6}.cat-교육{color:#2dd4bf}.cat-여행{color:#fb923c}
 .dot-경제{background:#4ade80}.dot-IT{background:#60a5fa}.dot-과학{background:#a78bfa}
 .dot-시사{background:#fbbf24}.dot-엔터{background:#f472b6}.dot-교육{background:#2dd4bf}.dot-여행{background:#fb923c}
+/* HOT */
+.hot-badge{display:inline-block;font-size:9px;font-weight:700;background:#ff8c00;color:#fff;padding:1px 5px;border-radius:3px;margin-left:6px;vertical-align:middle}
+.vcard.hot{border:1px solid rgba(255,140,0,0.3);background:#1a1500}
+.vcard.hot:hover{background:#1e1900}
+/* THUMB */
+.vthumb{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:5px;margin-bottom:6px;display:block;background:#2a2a2a}
 /* EMPTY */
 .empty{padding:50px 20px;text-align:center;color:#444;font-size:13px}
+/* CHANNEL MANAGER */
+.ch-mgr{border-top:1px solid #1e1e1e;padding:14px;margin-top:8px}
+.ch-mgr-title{font-size:10px;font-weight:600;color:#444;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.ch-mgr-title button{font-size:10px;background:none;border:none;color:#555;cursor:pointer;padding:0}
+.ch-mgr-title button:hover{color:#f0f0f0}
+.ch-add-form{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.ch-input{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:5px;color:#ccc;font-size:11px;padding:5px 8px;outline:none;width:100%}
+.ch-input:focus{border-color:#444}
+.ch-input::placeholder{color:#444}
+.ch-select{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:5px;color:#888;font-size:11px;padding:5px 8px;outline:none;width:100%;cursor:pointer}
+.ch-add-btn{background:#ff4444;border:none;border-radius:5px;color:#fff;font-size:11px;font-weight:600;padding:6px;cursor:pointer;width:100%}
+.ch-add-btn:hover{background:#e03333}
+.ch-list{display:flex;flex-direction:column;gap:3px;max-height:200px;overflow-y:auto}
+.ch-item{display:flex;align-items:center;justify-content:space-between;padding:5px 6px;background:#1a1a1a;border-radius:4px;font-size:11px;color:#888}
+.ch-item-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ch-item-cat{font-size:10px;margin:0 6px;flex-shrink:0}
+.ch-del-btn{background:none;border:none;color:#444;cursor:pointer;font-size:12px;padding:0 2px;flex-shrink:0}
+.ch-del-btn:hover{color:#ff4444}
+.ch-mgr-collapsed .ch-add-form,.ch-mgr-collapsed .ch-list{display:none}
 </style>
 </head>
 <body>
@@ -90,6 +115,7 @@ body{background:#0f0f0f;color:#f0f0f0;font-family:'Apple SD Gothic Neo',-apple-s
   <button class="btn" onclick="clearKey()" title="저장된 키 삭제" style="font-size:11px;padding:5px 8px">🗑</button>
   <button class="btn red" onclick="startLoad()">불러오기</button>
   <span class="updated" id="updated"></span>
+  <span class="updated" id="sheetStatus" style="color:#60a5fa"></span>
   <button class="btn" id="refreshBtn" style="display:none" onclick="startLoad()">↻ 새로고침</button>
 </div>
 
@@ -120,6 +146,32 @@ body{background:#0f0f0f;color:#f0f0f0;font-family:'Apple SD Gothic Neo',-apple-s
     <div class="nav-item" onclick="setCat('여행/브이로그')" data-cat="여행/브이로그">
       <span class="ndot dot-여행"></span><span class="nname">여행/브이로그</span><span class="nbadge" id="n-여행">—</span>
     </div>
+
+    <!-- 채널 관리 -->
+    <div class="ch-mgr" id="chMgr">
+      <div class="ch-mgr-title">
+        내 추가 채널 (개인용)
+        <button onclick="toggleChMgr()">▲ 접기</button>
+      </div>
+      <div style="font-size:10px;color:#444;margin-bottom:10px;line-height:1.5">
+        모두에게 보이려면<br>
+        <a href="https://docs.google.com/spreadsheets/d/16cEGwpmwIFdewzsAkfgl1ZCKZt48wQvRItWHdne6xME/edit" target="_blank" style="color:#60a5fa">공통 채널 시트</a>에 추가해주세요
+      </div>
+      <div class="ch-add-form">
+        <input class="ch-input" id="chUrlInput" placeholder="@handle 또는 채널 URL">
+        <select class="ch-select" id="chCatInput">
+          <option value="경제/재테크">경제/재테크</option>
+          <option value="IT/테크">IT/테크</option>
+          <option value="과학/공학">과학/공학</option>
+          <option value="시사/교양">시사/교양</option>
+          <option value="엔터/토크">엔터/토크</option>
+          <option value="교육">교육</option>
+          <option value="여행/브이로그">여행/브이로그</option>
+        </select>
+        <button class="ch-add-btn" onclick="addChannel()">+ 나만 보기로 추가</button>
+      </div>
+      <div class="ch-list" id="chList"></div>
+    </div>
   </nav>
 
   <div class="content">
@@ -133,9 +185,9 @@ body{background:#0f0f0f;color:#f0f0f0;font-family:'Apple SD Gothic Neo',-apple-s
     <div class="feed">
       <div class="filter-row">
         <span class="flabel">기간</span>
-        <button class="fbtn active" onclick="setDate('all')" data-d="all">전체</button>
+        <button class="fbtn" onclick="setDate('all')" data-d="all">전체</button>
         <button class="fbtn" onclick="setDate('today')" data-d="today">오늘</button>
-        <button class="fbtn" onclick="setDate('yesterday')" data-d="yesterday">어제</button>
+        <button class="fbtn active" onclick="setDate('yesterday')" data-d="yesterday">어제</button>
         <button class="fbtn" onclick="setDate('week')" data-d="week">이번 주</button>
         <select class="sort" onchange="render()">
           <option value="date">최신순</option>
@@ -154,7 +206,7 @@ body{background:#0f0f0f;color:#f0f0f0;font-family:'Apple SD Gothic Neo',-apple-s
 </div>
 
 <script>
-const CHANNELS=[
+const DEFAULT_CHANNELS=[
   {handle:'@syukaworld',cat:'경제/재테크'},{handle:'@moneymoneycomics',cat:'경제/재테크'},
   {handle:'@itsub',cat:'IT/테크'},{id:'UCdpbqw5DPdBfaeByMF2Re0g',cat:'여행/브이로그'},
   {handle:'@unrealscience',cat:'과학/공학'},{handle:'@3protv',cat:'경제/재테크'},
@@ -180,7 +232,69 @@ const CHANNELS=[
   {handle:'@workman',cat:'엔터/토크'},{handle:'@wikitree',cat:'시사/교양'}
 ];
 
-let KEY='', videos=[], curCat='전체', curDate='all';
+let KEY='', videos=[], curCat='전체', curDate='yesterday';
+
+// ── 구글 시트 연동 ──
+const SHEET_ID = '16cEGwpmwIFdewzsAkfgl1ZCKZt48wQvRItWHdne6xME';
+const SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
+
+// CSV 한 줄을 안전하게 파싱 (쉼표가 값 안에 있는 경우 대비)
+function parseCsvLine(line){
+  const result=[]; let cur=''; let inQuotes=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(c==='"'){ inQuotes=!inQuotes; continue; }
+    if(c===','&&!inQuotes){ result.push(cur.trim()); cur=''; continue; }
+    cur+=c;
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+async function fetchSheetChannels(){
+  try{
+    const res=await fetch(SHEET_CSV_URL);
+    if(!res.ok) throw new Error('시트 응답 오류: '+res.status);
+    const text=await res.text();
+    const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);
+    if(!lines.length) return [];
+    const header=parseCsvLine(lines[0]).map(h=>h.toLowerCase());
+    const hIdx=header.indexOf('handle');
+    const cIdx=header.indexOf('cat');
+    const iIdx=header.indexOf('id');
+    const channels=[];
+    for(let i=1;i<lines.length;i++){
+      const cols=parseCsvLine(lines[i]);
+      const handle=hIdx>=0?cols[hIdx]:'';
+      const id=iIdx>=0?cols[iIdx]:'';
+      const cat=cIdx>=0?cols[cIdx]:'';
+      if(!cat) continue;
+      if(id) channels.push({id, cat});
+      else if(handle) channels.push({handle, cat});
+    }
+    return channels;
+  }catch(e){
+    console.warn('구글 시트 불러오기 실패, 기본 채널만 사용:', e);
+    return null; // null이면 시트 실패를 의미
+  }
+}
+
+// localStorage에서 커스텀 채널 불러오기 (개인 추가분, 시트 실패 시 폴백용)
+function loadCustomChannels(){
+  try{ return JSON.parse(localStorage.getItem('yt_channels')||'[]'); }catch(e){ return []; }
+}
+function saveCustomChannels(arr){ localStorage.setItem('yt_channels', JSON.stringify(arr)); }
+
+async function getChannels(){
+  const sheetChannels=await fetchSheetChannels();
+  if(sheetChannels===null){
+    // 시트 실패 → 기본 채널 + 개인 로컬 추가분으로 폴백
+    $('sheetStatus').textContent='⚠ 시트 연동 실패, 기본 목록 사용';
+    return [...DEFAULT_CHANNELS, ...loadCustomChannels()];
+  }
+  $('sheetStatus').textContent=`✓ 공통 채널 ${sheetChannels.length}개 (구글 시트)`;
+  return [...sheetChannels, ...loadCustomChannels()];
+}
 
 const $ = id => document.getElementById(id);
 
@@ -242,11 +356,19 @@ function render(){
   if(curDate==='today') list=list.filter(v=>isToday(v.pub));
   else if(curDate==='yesterday') list=list.filter(v=>isYday(v.pub));
   else if(curDate==='week') list=list.filter(v=>isWeek(v.pub));
+  // 키워드 필터
+  const kw=(document.getElementById('kwInput')?.value||'').trim().toLowerCase();
+  if(kw) list=list.filter(v=>(v.title+v.desc).toLowerCase().includes(kw));
+  const kwCount=document.getElementById('kwCount');
+  if(kwCount) kwCount.textContent=kw?`${list.length}개 검색됨`:'';
 
   const sort=document.querySelector('.sort').value;
   if(sort==='date') list.sort((a,b)=>new Date(b.pub)-new Date(a.pub));
   else if(sort==='views') list.sort((a,b)=>(parseInt(b.views)||0)-(parseInt(a.views)||0));
   else if(sort==='likes') list.sort((a,b)=>(parseInt(b.likes)||0)-(parseInt(a.likes)||0));
+  // 급상승: 최근 7일 영상 중 조회수 상위 10%
+  const recentViews=list.filter(v=>isWeek(v.pub)).map(v=>parseInt(v.views)||0).sort((a,b)=>b-a);
+  const hotThreshold=recentViews[Math.floor(recentViews.length*0.1)]||999999;
 
   const label=curDate==='today'?'오늘':curDate==='yesterday'?'어제':curDate==='week'?'이번 주':'전체';
   $('ftitle').textContent=`${list.length}개 영상 (${label})`;
@@ -256,8 +378,9 @@ function render(){
   // DOM으로 생성 (innerHTML 우회 → textContent 안전 삽입)
   const frag=document.createDocumentFragment();
   list.forEach((v,i)=>{
+    const isHot=isWeek(v.pub)&&(parseInt(v.views)||0)>=hotThreshold&&hotThreshold>0;
     const card=document.createElement('div');
-    card.className='vcard';
+    card.className='vcard'+(isHot?' hot':'');
     card.style.cursor='pointer';
     card.onclick=()=>window.open(`https://www.youtube.com/watch?v=${v.vid}`,'_blank');
 
@@ -282,6 +405,14 @@ function render(){
     const vmain=document.createElement('div');
     vmain.className='vmain';
 
+    // 영상 썸네일
+    const thumbImg=document.createElement('img');
+    thumbImg.className='vthumb';
+    thumbImg.src=`https://i.ytimg.com/vi/${v.vid}/mqdefault.jpg`;
+    thumbImg.alt='';
+    thumbImg.onerror=()=>thumbImg.remove();
+    vmain.appendChild(thumbImg);
+
     const titleDiv=document.createElement('div');
     titleDiv.className='vtitle';
     const a=document.createElement('a');
@@ -289,8 +420,9 @@ function render(){
     a.target='_blank';
     a.onclick=e=>e.stopPropagation();
     a.textContent=v.title;
-    if(isToday(v.pub)){ const b=document.createElement('span'); b.className='new-badge'; b.textContent='NEW'; titleDiv.appendChild(a); titleDiv.appendChild(b); }
-    else { titleDiv.appendChild(a); }
+    titleDiv.appendChild(a);
+    if(isToday(v.pub)){ const b=document.createElement('span'); b.className='new-badge'; b.textContent='NEW'; titleDiv.appendChild(b); }
+    if(isHot){ const h=document.createElement('span'); h.className='hot-badge'; h.textContent='🔥급상승'; titleDiv.appendChild(h); }
     vmain.appendChild(titleDiv);
 
     const meta=document.createElement('div');
@@ -372,6 +504,7 @@ async function startLoad(){
 
   let done=0;
   const BATCH=3;
+  const CHANNELS=await getChannels();
   for(let i=0;i<CHANNELS.length;i+=BATCH){
     await Promise.all(CHANNELS.slice(i,i+BATCH).map(async ch=>{ try{ await loadChannel(ch); }catch(e){} done++; }));
     $('progFill').style.width=Math.round(done/CHANNELS.length*100)+'%';
@@ -397,6 +530,82 @@ function clearKey(){
   document.getElementById('apiKey').value='';
   document.getElementById('savedBadge').style.display='none';
 }
+
+function toggleChMgr(){
+  const mgr=document.getElementById('chMgr');
+  const btn=mgr.querySelector('.ch-mgr-title button');
+  mgr.classList.toggle('ch-mgr-collapsed');
+  btn.textContent=mgr.classList.contains('ch-mgr-collapsed')?'▼ 펼치기':'▲ 접기';
+}
+
+function parseHandle(input){
+  input=input.trim();
+  // URL에서 handle 추출
+  const handleMatch=input.match(/@[\w.\-]+/);
+  if(handleMatch) return {handle: handleMatch[0]};
+  const idMatch=input.match(/channel\/(UC[\w-]+)/);
+  if(idMatch) return {id: idMatch[1]};
+  // 직접 @handle 또는 ID
+  if(input.startsWith('@')) return {handle: input};
+  if(input.startsWith('UC')) return {id: input};
+  return {handle: '@'+input};
+}
+
+function addChannel(){
+  const urlVal=document.getElementById('chUrlInput').value.trim();
+  const cat=document.getElementById('chCatInput').value;
+  if(!urlVal){ alert('채널 URL 또는 핸들을 입력해주세요'); return; }
+  const parsed=parseHandle(urlVal);
+  const custom=loadCustomChannels();
+  // 중복 체크
+  const allCh=getChannels();
+  const dup=allCh.find(c=>(parsed.handle&&c.handle===parsed.handle)||(parsed.id&&c.id===parsed.id));
+  if(dup){ alert('이미 추가된 채널이에요'); return; }
+  custom.push({...parsed, cat});
+  saveCustomChannels(custom);
+  document.getElementById('chUrlInput').value='';
+  renderChList();
+  alert('채널이 추가됐어요! 새로고침을 눌러 데이터를 불러오세요.');
+}
+
+function deleteChannel(idx){
+  const custom=loadCustomChannels();
+  const ch=custom[idx];
+  if(!confirm(`"${ch.handle||ch.id}" 채널을 삭제할까요?`)) return;
+  custom.splice(idx,1);
+  saveCustomChannels(custom);
+  renderChList();
+}
+
+function renderChList(){
+  const list=document.getElementById('chList');
+  if(!list) return;
+  const custom=loadCustomChannels();
+  if(!custom.length){
+    list.innerHTML='<div style="font-size:11px;color:#444;padding:4px 0">추가된 채널 없음</div>';
+    return;
+  }
+  list.innerHTML='';
+  custom.forEach((ch,i)=>{
+    const item=document.createElement('div');
+    item.className='ch-item';
+    const name=document.createElement('span');
+    name.className='ch-item-name';
+    name.textContent=ch.handle||ch.id;
+    const cat=document.createElement('span');
+    cat.className=`ch-item-cat cat-${ck(ch.cat)}`;
+    cat.textContent=ch.cat;
+    const del=document.createElement('button');
+    del.className='ch-del-btn';
+    del.textContent='✕';
+    del.onclick=()=>deleteChannel(i);
+    item.appendChild(name); item.appendChild(cat); item.appendChild(del);
+    list.appendChild(item);
+  });
+}
+
+// 초기 렌더
+renderChList();
 </script>
 </body>
 </html>
